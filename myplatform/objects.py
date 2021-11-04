@@ -36,8 +36,9 @@ class Player(GameObject):
         self.counter = 0
         self.direction = Direction.RIGHT
         self.is_jumping = False
+        self.jump_time = 0
 
-    def update(self, world: list[GameObject], height):
+    def update(self, world):
         # Check movement
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
@@ -48,28 +49,39 @@ class Player(GameObject):
             self.direction = Direction.RIGHT
         else:
             self.velocity[0] = 0
-        if keys[pygame.K_SPACE] and not self.is_jumping:
+        if keys[pygame.K_SPACE] and not self.is_jumping and self.jump_time < 2:
             self.is_jumping = True
+            self.jump_time += 1
             self.velocity[1] = -15
+        if not keys[pygame.K_SPACE]:
+            self.is_jumping = False
 
         self.velocity[1] += 1
         dx = self.velocity[0]
         dy = self.velocity[1]
-        for tile in world:
-            # check for collision in x direction
-            if tile.rect.colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
-                dx = 0
-            # check for collision in y direction
-            if tile.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
-                # check if below the ground i.e. jumping
-                if self.velocity[1] < 0:
-                    dy = tile.rect.bottom - self.rect.top
-                    self.velocity[1] = 0
-                # check if above the ground i.e. falling
-                elif self.velocity[1] >= 0:
-                    dy = tile.rect.top - self.rect.bottom
-                    self.is_jumping = False
-                    self.velocity[1] = 0
+        for col in world.block_list:
+            for tile in col:
+                # check for collision in x direction
+                if tile.rect.colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                    dx = 0
+                # check for collision in y direction
+                if tile.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                    # check if below the ground i.e. jumping
+                    if self.velocity[1] < 0:
+                        dy = tile.rect.bottom - self.rect.top
+                        self.velocity[1] = 0
+                    # check if above the ground i.e. falling
+                    elif self.velocity[1] >= 0:
+                        dy = tile.rect.top - self.rect.bottom
+                        self.jump_time = 0
+                        self.velocity[1] = 0
+
+        if self.rect.x + dx > 0.70*world.size:
+            world.generator.move_right(dx)
+            dx = 0
+        elif self.rect.x + dx < 0.3*world.size:
+            world.generator.move_left(dx)
+            dx = 0
 
         self.rect.x += dx
         self.rect.y += dy
