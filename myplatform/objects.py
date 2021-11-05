@@ -4,6 +4,7 @@ from myplatform.constants import Direction
 
 class GameObject:
     def __init__(self, image: pygame.Surface, x: int, y: int, width: int, height: int):
+        """An object with specified image and position"""
         self.width = width
         self.height = height
         self.image = pygame.transform.scale(image, (width, height))
@@ -12,15 +13,18 @@ class GameObject:
         self.rect.y = y
 
     def draw(self, screen):
+        """Draw the tile on screen"""
         screen.blit(self.image, self.rect)
 
-    def check_collision(self, rectangle):
+    def check_collision(self, rectangle: pygame.Surface) -> bool:
+        """Check if is colliding with other object"""
         return self.rect.colliderect(rectangle)
 
 
 # noinspection PyAttributeOutsideInit
 class Player(GameObject):
     def __init__(self, x, y, width, height):
+        """The object representing the player"""
         self.width = width
         self.height = height
 
@@ -28,35 +32,39 @@ class Player(GameObject):
         self.image_idx = 0
         self.load_images()
 
-        # call init
+        # call init of GameObject
         super().__init__(self.right_images[self.image_idx], x, y, width, height)
 
         # Movement controls
-        self.velocity = [0, 0]
-        self.counter = 0
-        self.direction = Direction.RIGHT
-        self.is_jumping = False
-        self.jump_time = 0
+        self.velocity = [0, 0]  # velocity in x and y direction
+        self.counter = 0  # counter for checking if image should be updated
+        self.direction = Direction.RIGHT  # Current direction
+        self.is_jumping = False  # IS player pressing key for jumping
+        self.jump_time = 0  # 0=no jump, 1=single jump, 2=double jump
 
     def update(self, world):
-        # Check movement
+        """Update position of the player"""
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
+            # Move left
             self.velocity[0] = -5
             self.direction = Direction.LEFT
         elif keys[pygame.K_RIGHT]:
+            # Move right
             self.velocity[0] = 5
             self.direction = Direction.RIGHT
         else:
+            # Stay still
             self.velocity[0] = 0
         if keys[pygame.K_SPACE] and not self.is_jumping and self.jump_time < 2:
+            # Jump
             self.is_jumping = True
             self.jump_time += 1
             self.velocity[1] = -15
         if not keys[pygame.K_SPACE]:
             self.is_jumping = False
 
-        self.velocity[1] += 1
+        self.velocity[1] += 1  # Add negative velocity (gravity)
         dx = self.velocity[0]
         dy = self.velocity[1]
         for col in world.block_list:
@@ -75,27 +83,29 @@ class Player(GameObject):
                         dy = tile.rect.top - self.rect.bottom
                         self.jump_time = 0
                         self.velocity[1] = 0
-
+        # If near right border, move background instead
         if self.rect.x + dx > 0.70*world.size:
             world.generator.move_right(dx)
             dx = 0
+        # If near left border, move background instead
         elif self.rect.x + dx < 0.3*world.size:
             world.generator.move_left(dx)
             dx = 0
-
+        # Update x and y position
         self.rect.x += dx
         self.rect.y += dy
 
-    def draw(self, screen):
+    def draw(self, screen: pygame.Surface):
+        """Draw player on the screen"""
         # Update image index
         if self.velocity[0] == 0:
             self.image_idx = 0
         else:
             self.counter += 1
+            # Update image every 10 frames
             if self.counter == 10:
                 self.counter = 0
                 self.image_idx = (self.image_idx + 1) % len(self.left_images)
-
         # Choose image direction
         if self.direction == Direction.LEFT:
             self.image = self.left_images[self.image_idx]
@@ -104,6 +114,7 @@ class Player(GameObject):
         super().draw(screen)
 
     def load_images(self):
+        """Load all images of the player"""
         self.left_images = []
         self.right_images = []
         for i in range(1, 5):

@@ -2,14 +2,17 @@ import pygame
 
 
 # button class
-class Button():
+class Button:
     def __init__(self, x, y, image):
+        """Create a button at position x, y and icon image"""
         self.image = image
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
         self.clicked = False
 
     def draw(self, surface):
+        """Draw the button on the surface.
+        Return True if the button has been clicked, False otherwise."""
         action = False
         # get mouse position
         pos = pygame.mouse.get_pos()

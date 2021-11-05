@@ -1,4 +1,3 @@
-import os.path
 import random
 
 import pygame
@@ -25,11 +24,12 @@ class Editor:
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption(title)
 
+        # The level currently shown on screen
         self.level_map = [[-1 for _ in range(size//self.tile_size)] for _ in range(size//self.tile_size)]
         self.load_images()  # Load all images
-        self.load_columns()
-        self.add_last_column()
-        self.add_first_column()
+        self.load_columns()  # Load possible margins
+        self.add_last_column()  # Add a new columns on the right
+        self.add_first_column()  # Add a new column on the left
 
         self.create_buttons()
 
@@ -39,15 +39,19 @@ class Editor:
         pygame.quit()
 
     def create_buttons(self):
+        """Create buttons with each block"""
         self.tile_buttons = []
         self.selected_tile = 0
         for i, tile in enumerate(self.tiles):
-            self.tile_buttons.append(Button(self.size + 50 + i * (self.tile_size + 50), 50, tile))
+            self.tile_buttons.append(Button(self.size + 75 + (i%2) * (self.tile_size + 50),
+                                            50 + (i//2)*(self.tile_size + 50), tile))
+        # Create save button
         self.save_button = Button(self.size // 2, self.screen_height - 50, self.save_img)
+        # Create load button
         self.load_button = Button(self.size // 2 + 200, self.screen_height - 50, self.load_img)
 
     def load_columns(self):
-        """Load the columns for begin/end screen"""
+        """Load the columns for beginning / end of screen"""
         with open("./levels/last_columns.pkl", "rb") as fin:
             self.ending_columns = pkl.load(fin)
         self.already_existing_left = defaultdict(lambda: 0)
@@ -98,9 +102,9 @@ class Editor:
         self.sun_img = pygame.image.load("./images/sun.png")
         self.background_img = pygame.image.load("./images/background.png")
         self.background_img = pygame.transform.scale(self.background_img, (self.size, self.size))
-        grass_img = pygame.image.load("./images/grass.png")
+        grass_img = pygame.image.load("./images/block1.png")
         grass_img = pygame.transform.scale(grass_img, (self.tile_size, self.tile_size))
-        dirt_img = pygame.image.load("./images/dirt.png")
+        dirt_img = pygame.image.load("./images/block2.png")
         dirt_img = pygame.transform.scale(dirt_img, (self.tile_size, self.tile_size))
         self.tiles = [grass_img, dirt_img]
         self.save_img = pygame.image.load('./images/save_btn.png').convert_alpha()
