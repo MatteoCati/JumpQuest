@@ -69,7 +69,6 @@ class LevelGenerator:
             next_level = default_level
             print("Non existing")
         else:
-            print(len(self.right_dict[self.left_margin]))
             next_level = random.choice(self.right_dict[self.left_margin])
 
         for x in range(len(next_level) - 1, -1, -1):
@@ -84,7 +83,6 @@ class LevelGenerator:
             next_level = default_level
             print("Non existing")
         else:
-            print(len(self.right_dict[self.right_margin]))
             next_level = random.choice(self.left_dict[self.right_margin])
         for col in next_level:
             new_col = self.convert_to_tiles(col)

@@ -40,9 +40,6 @@ class Editor:
 
         pygame.quit()
 
-    def generate_block(self, block_num, ):
-        pass
-
     def create_buttons(self):
         """Create buttons with each block"""
         self.tile_buttons = []

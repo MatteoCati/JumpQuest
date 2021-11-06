@@ -13,11 +13,13 @@ def generate_tile(block_num, x, y, image):
         tile = GameObject(image, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE//2)
     elif block_type == BlockType.LOW_PLATFORM:
         tile = GameObject(image, x*TILE_SIZE, y*TILE_SIZE + TILE_SIZE//2, TILE_SIZE, TILE_SIZE//2)
+    elif block_type == BlockType.LAVA:
+        tile = GameObject(image, x * TILE_SIZE, y * TILE_SIZE + TILE_SIZE // 2, TILE_SIZE, TILE_SIZE // 2, True)
     return tile
 
 
 class GameObject:
-    def __init__(self, image: pygame.Surface, x: int, y: int, width: int, height: int):
+    def __init__(self, image: pygame.Surface, x: int, y: int, width: int, height: int, deadly=False):
         """An object with specified image and position"""
         self.width = width
         self.height = height
@@ -25,6 +27,7 @@ class GameObject:
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+        self.deadly = deadly
 
     def draw(self, screen):
         """Draw the tile on screen"""
@@ -58,27 +61,32 @@ class Player(GameObject):
 
     def update(self, world):
         """Update position of the player"""
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
-            # Move left
-            self.velocity[0] = -5
-            self.direction = Direction.LEFT
-        elif keys[pygame.K_RIGHT]:
-            # Move right
-            self.velocity[0] = 5
-            self.direction = Direction.RIGHT
+        if not world.game_over:
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_LEFT]:
+                # Move left
+                self.velocity[0] = -5
+                self.direction = Direction.LEFT
+            elif keys[pygame.K_RIGHT]:
+                # Move right
+                self.velocity[0] = 5
+                self.direction = Direction.RIGHT
+            else:
+                # Stay still
+                self.velocity[0] = 0
+            if keys[pygame.K_SPACE] and not self.is_jumping and self.jump_time < 2:
+                # Jump
+                self.is_jumping = True
+                self.jump_time += 1
+                self.velocity[1] = -15
+            if not keys[pygame.K_SPACE]:
+                self.is_jumping = False
+            self.velocity[1] += 1  # Add negative velocity (gravity)
         else:
-            # Stay still
             self.velocity[0] = 0
-        if keys[pygame.K_SPACE] and not self.is_jumping and self.jump_time < 2:
-            # Jump
-            self.is_jumping = True
-            self.jump_time += 1
-            self.velocity[1] = -15
-        if not keys[pygame.K_SPACE]:
-            self.is_jumping = False
-
-        self.velocity[1] += 1  # Add negative velocity (gravity)
+            self.image_idx = -1
+            self.velocity[1] = 0
+            self.rect.y = min(world.size - TILE_SIZE, self.rect.y)
         dx = self.velocity[0]
         dy = self.velocity[1]
         for col in world.block_list:
@@ -97,6 +105,10 @@ class Player(GameObject):
                         dy = tile.rect.top - self.rect.bottom
                         self.jump_time = 0
                         self.velocity[1] = 0
+                    # Check if collision is deadly
+                    if tile.deadly:
+                        world.game_over = True
+
         # If near right border, move background instead
         if self.rect.x + dx > 0.70*world.size:
             world.generator.move_right(dx)
@@ -112,19 +124,22 @@ class Player(GameObject):
     def draw(self, screen: pygame.Surface):
         """Draw player on the screen"""
         # Update image index
-        if self.velocity[0] == 0:
-            self.image_idx = 0
+        if self.image_idx == -1:
+            self.image = self.ghost_image
         else:
-            self.counter += 1
-            # Update image every 10 frames
-            if self.counter == 10:
-                self.counter = 0
-                self.image_idx = (self.image_idx + 1) % len(self.left_images)
-        # Choose image direction
-        if self.direction == Direction.LEFT:
-            self.image = self.left_images[self.image_idx]
-        else:
-            self.image = self.right_images[self.image_idx]
+            if self.velocity[0] == 0:
+                self.image_idx = 0
+            else:
+                self.counter += 1
+                # Update image every 10 frames
+                if self.counter == 10:
+                    self.counter = 0
+                    self.image_idx = (self.image_idx + 1) % len(self.left_images)
+            # Choose image direction
+            if self.direction == Direction.LEFT:
+                self.image = self.left_images[self.image_idx]
+            else:
+                self.image = self.right_images[self.image_idx]
         super().draw(screen)
 
     def load_images(self):
@@ -136,3 +151,4 @@ class Player(GameObject):
             img = pygame.transform.scale(img, (self.width, self.height))
             self.right_images.append(img)
             self.left_images.append(pygame.transform.flip(img, True, False))
+        self.ghost_image = pygame.image.load(f"./images/ghost.png")
