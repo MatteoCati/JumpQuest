@@ -89,7 +89,7 @@ class Player(GameObject):
             self.rect.y = min(world.size - TILE_SIZE, self.rect.y)
         dx = self.velocity[0]
         dy = self.velocity[1]
-        for col in world.block_list:
+        for col, _ in world.block_list:
             for tile in col:
                 # check for collision in x direction
                 if tile.rect.colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
@@ -114,9 +114,9 @@ class Player(GameObject):
             world.generator.move_right(dx)
             dx = 0
         # If near left border, move background instead
-        elif self.rect.x + dx < 0.3*world.size:
-            world.generator.move_left(dx)
-            dx = 0
+        elif self.direction == Direction.LEFT and self.rect.x + dx < 0.3*world.size:
+            if world.generator.move_left(dx):
+                dx = 0
         # Update x and y position
         self.rect.x += dx
         self.rect.y += dy
@@ -152,3 +152,13 @@ class Player(GameObject):
             self.right_images.append(img)
             self.left_images.append(pygame.transform.flip(img, True, False))
         self.ghost_image = pygame.image.load(f"./images/ghost.png")
+
+
+class Coin(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.image.load('images/coin.png')
+        self.image = pygame.transform.scale(self.image, (TILE_SIZE //2, TILE_SIZE//2))
+        self.rect = self.image.get_rect()
+        self.rect.center = (x * TILE_SIZE + TILE_SIZE//2, y * TILE_SIZE + TILE_SIZE//2)
+

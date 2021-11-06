@@ -3,19 +3,20 @@ import random
 import pickle as pkl
 import pygame
 
-from myplatform.constants import default_level, NUM_BLOCKS, TILE_SIZE
-from myplatform.objects import GameObject, generate_tile
+from myplatform.constants import default_level, NUM_BLOCKS, TILE_SIZE, BlockType
+from myplatform.objects import GameObject, generate_tile, Coin
 
 
 # noinspection PyAttributeOutsideInit
 class LevelGenerator:
     def __init__(self, screen_size):
         # Stack for keeping track of columns out of sight
-        self.left_stack = deque(maxlen=500)
         self.right_stack = deque(maxlen=500)
-
+        self.left_stack = deque(maxlen=500)
         self.screen_size = screen_size
+        self.coin_probability = 1/4
 
+        self.coins_list = pygame.sprite.Group()
         self.load_images()
         self.load_levels()
 
@@ -27,25 +28,27 @@ class LevelGenerator:
 
     def load_levels(self):
         """Load levels from file"""
-        self.left_dict = defaultdict(list)
-        self.right_dict = defaultdict(list)
+        self.creation_dict = defaultdict(list)
         with open("./levels/all_levels.pkl", "rb") as fin:
             levels = pkl.load(fin)
             for level_map in levels:
                 l_col = [str(i) for i in level_map[0]]
-                r_col = [str(i) for i in level_map[-1]]
-                self.left_dict["".join(l_col)].append(level_map)
-                self.right_dict["".join(r_col)].append(level_map)
+                self.creation_dict["".join(l_col)].append(level_map)
 
     def load_default(self) -> deque[list[GameObject]]:
         """Load starting level"""
         self.block_list = deque()
         for x, col in enumerate(default_level):
             new_col = self.convert_to_tiles(col, x)
-            self.block_list.append(new_col)
-
-        self.left_margin = "".join([str(i) for i in default_level[0]])
-        self.right_margin = "".join([str(i) for i in default_level[-1]])
+            self.block_list.append((new_col, col))
+            for i in range(0, len(col) - 3):
+                if col[i] == BlockType.EMPTY.value and col[i + 1] == BlockType.EMPTY.value and \
+                        col[i + 2] != BlockType.EMPTY.value:
+                    if random.random() < self.coin_probability:
+                        coin = Coin(x, i)
+                        self.coins_list.add(coin)
+                        break
+        self.margin = "".join([str(i) for i in default_level[-1]])
         return self.block_list
 
     def convert_to_tiles(self, column: list[int], x=0) -> list[GameObject]:
@@ -55,73 +58,73 @@ class LevelGenerator:
             tile = generate_tile(block_num, x, y, self.images[block_num])
             if tile:
                 tiles_col.append(tile)
+
         return tiles_col
 
     def shift(self, dx: int):
         """Move all tiles of dx pixels"""
-        for col in self.block_list:
+        for (col, _) in self.block_list:
             for block in col:
                 block.rect.x += dx
-
-    def create_left_level(self):
-        """Add level on the left of the screen"""
-        if len(self.left_dict[self.left_margin]) == 0:
-            next_level = default_level
-            print("Non existing")
-        else:
-            next_level = random.choice(self.right_dict[self.left_margin])
-
-        for x in range(len(next_level) - 1, -1, -1):
-            new_col = self.convert_to_tiles(next_level[x])
-            self.left_stack.appendleft(new_col)
-
-        self.left_margin = "".join([str(i) for i in next_level[0]])
+        for coin in self.coins_list:
+            coin.rect.x += dx
 
     def create_right_level(self):
         """Add new level to the right of the screen"""
-        if len(self.left_dict[self.right_margin]) == 0:
+        if len(self.creation_dict[self.margin]) == 0:
             next_level = default_level
             print("Non existing")
         else:
-            next_level = random.choice(self.left_dict[self.right_margin])
+            next_level = random.choice(self.creation_dict[self.margin])
         for col in next_level:
             new_col = self.convert_to_tiles(col)
-            self.right_stack.appendleft(new_col)
-        self.right_margin = "".join([str(i) for i in next_level[-1]])
+            self.right_stack.append((new_col, col))
+
+        self.margin = "".join([str(i) for i in next_level[-1]])
 
     def move_left(self, dx):
         """Move screen to the left by dx pixels, loading a new column/level if necessary"""
         i = 0
         # Get position of last block on screen
-        while not self.block_list[i]:
+        while not self.block_list[i][0]:
             i += 1
-        if self.block_list[i][0].rect.x - dx >= i * TILE_SIZE:
+        if self.block_list[i][0][0].rect.x - dx >= i * TILE_SIZE:
             # If left stack is empty, add level on the left
             if not self.left_stack:
-                self.create_left_level()
+                return False
+
             # Update x coordinate for blocks in the column
-            column = self.left_stack.pop()
+            column, map = self.left_stack.pop()
             for block in column:
-                block.rect.x = self.block_list[i][0].rect.x - (i + 1) * TILE_SIZE
+                block.rect.x = self.block_list[i][0][0].rect.x - (i + 1) * TILE_SIZE
             # Add columns on the left of block_list
-            self.block_list.appendleft(column)
-            self.right_stack.append(self.block_list.pop())
+            self.block_list.appendleft((column, map))
+            self.right_stack.appendleft(self.block_list.pop())
         self.shift(-dx)
+        return True
 
     def move_right(self, dx):
         """Move screen to the right by dx pixels, loading a new column/level if necessary"""
-        i = len(self.block_list) - 1
-        while not self.block_list[i]:
-            i -= 1
-        if self.block_list[i][0].rect.x - dx < self.screen_size - (len(self.block_list) - i) * TILE_SIZE:
+        last = len(self.block_list) - 1
+        while not self.block_list[last][0]:
+            last -= 1
+        if self.block_list[last][0][0].rect.x - dx < self.screen_size - (len(self.block_list) - last) * TILE_SIZE:
             # If right stack is empty, add level on the right stack
             if not self.right_stack:
                 self.create_right_level()
             # Update x coordinates for blocks in the column
-            column = self.right_stack.pop()
+            column, map = self.right_stack.popleft()
             for block in column:
-                block.rect.x = self.block_list[i][0].rect.x + (len(self.block_list) - i) * TILE_SIZE
+                block.rect.x = self.block_list[last][0][0].rect.x + (len(self.block_list) - last) * TILE_SIZE
+            for i in range(0, len(map) - 3):
+                if map[i] == BlockType.EMPTY.value and map[i + 1] == BlockType.EMPTY.value and \
+                        map[i + 2] != BlockType.EMPTY.value:
+                    if random.random() < self.coin_probability:
+                        coin = Coin(0, i)
+                        coin.rect.center = (self.block_list[last][0][0].rect.x + (len(self.block_list) - last) * TILE_SIZE + TILE_SIZE//2, coin.rect.center[1])
+                        self.coins_list.add(coin)
+                        break
             # Add columns on the right of block_list
-            self.block_list.append(column)
+            self.block_list.append((column, map))
             self.left_stack.append(self.block_list.popleft())
         self.shift(-dx)

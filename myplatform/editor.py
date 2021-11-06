@@ -2,7 +2,7 @@ import random
 
 import pygame
 from myplatform.button import Button
-from myplatform.objects import generate_tile, GameObject
+from myplatform.objects import generate_tile
 from myplatform.constants import TILE_SIZE, BlockType, NUM_BLOCKS
 import pickle as pkl
 from collections import defaultdict
@@ -88,18 +88,7 @@ class Editor:
 
     def add_last_column(self):
         """Change last column at random"""
-        minimum = 2000
-        index = [0]
-        for idx, col in enumerate(self.ending_columns):
-            s = "".join([str(i) for i in col])
-            if self.already_existing_right[s] < minimum:
-                minimum = self.already_existing_right[s]
-                index = [idx]
-            elif self.already_existing_right[s] == minimum:
-                index.append(idx)
-        if minimum > 0:
-            print("Minimum repetition on right side:", minimum, "/", len(self.ending_columns))
-        self.level_map[-1] = self.ending_columns[random.choice(index)]
+        self.level_map[-1] = random.choice(self.ending_columns)
 
     def load_images(self):
         """Load all necessary images"""
