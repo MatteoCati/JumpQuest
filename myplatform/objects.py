@@ -1,5 +1,19 @@
 import pygame
-from myplatform.constants import Direction
+from myplatform.constants import Direction, BlockType, TILE_SIZE
+
+
+def generate_tile(block_num, x, y, image):
+    block_type = BlockType(block_num)
+    tile = None
+    if block_type == BlockType.GRASS:
+        tile = GameObject(image, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+    elif block_type == BlockType.DIRT:
+        tile = GameObject(image, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+    elif block_type == BlockType.PLATFORM:
+        tile = GameObject(image, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE//2)
+    elif block_type == BlockType.LOW_PLATFORM:
+        tile = GameObject(image, x*TILE_SIZE, y*TILE_SIZE + TILE_SIZE//2, TILE_SIZE, TILE_SIZE//2)
+    return tile
 
 
 class GameObject:

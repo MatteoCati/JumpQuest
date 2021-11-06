@@ -1,4 +1,4 @@
-# My Platform Game
+# Jump Quest
 
 This is a simple platform, where levels are generated automatically based on some templates provided.
 

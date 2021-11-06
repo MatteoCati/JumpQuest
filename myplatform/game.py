@@ -8,14 +8,13 @@ class Game:
     def __init__(self, title="Platform Game", size=800, fps=60):
         self.size = size
         self.fps = fps
-        self.tile_size = 50
 
         pygame.init()
         self.screen = pygame.display.set_mode((size, size))
         pygame.display.set_caption(title)
 
         self.load_images()
-        self.generator = LevelGenerator(self.tile_size, self.size)
+        self.generator = LevelGenerator(self.size)
         self.block_list = self.generator.load_default()
         self.player = Player(self.size//2, 0, 40, 80)
 

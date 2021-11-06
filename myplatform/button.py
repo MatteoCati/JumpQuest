@@ -2,6 +2,9 @@ import pygame
 
 
 # button class
+from myplatform.objects import GameObject
+
+
 class Button:
     def __init__(self, x, y, image):
         """Create a button at position x, y and icon image"""
@@ -9,6 +12,10 @@ class Button:
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
         self.clicked = False
+
+    @classmethod
+    def fromGameObject(cls, obj: GameObject, x, y):
+        return cls(x, y, obj.image)
 
     def draw(self, surface):
         """Draw the button on the surface.

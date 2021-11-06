@@ -6,10 +6,13 @@ class BlockType(Enum):
     EMPTY = -1
     GRASS = 0
     DIRT = 1
+    PLATFORM = 2
+    LOW_PLATFORM = 3
 
 
 # Total number of tiles (files named block{i}.png)
-NUM_BLOCKS = 2
+NUM_BLOCKS = 4
+TILE_SIZE = 50
 
 
 class Direction(Enum):
@@ -18,11 +21,11 @@ class Direction(Enum):
 
 
 _level_description = [
+    [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -39,5 +42,5 @@ default_level = []
 for i in range(len(_dl)):
     col = []
     for j in range(len(_dl[0])):
-        col.append(_dl[i][j]-1)
+        col.append(_dl[i][j] - 1)
     default_level.append(col)

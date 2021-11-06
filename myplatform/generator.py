@@ -1,21 +1,19 @@
-import os
 from collections import deque, defaultdict
 import random
 import pickle as pkl
 import pygame
 
-from myplatform.constants import default_level, BlockType, NUM_BLOCKS
-from myplatform.objects import GameObject
+from myplatform.constants import default_level, NUM_BLOCKS, TILE_SIZE
+from myplatform.objects import GameObject, generate_tile
 
 
 # noinspection PyAttributeOutsideInit
 class LevelGenerator:
-    def __init__(self, tile_size, screen_size):
+    def __init__(self, screen_size):
         # Stack for keeping track of columns out of sight
         self.left_stack = deque(maxlen=500)
         self.right_stack = deque(maxlen=500)
 
-        self.tile_size = tile_size
         self.screen_size = screen_size
 
         self.load_images()
@@ -36,8 +34,8 @@ class LevelGenerator:
             for level_map in levels:
                 l_col = [str(i) for i in level_map[0]]
                 r_col = [str(i) for i in level_map[-1]]
-                self.left_dict["".join(r_col)].append(level_map)
-                self.right_dict["".join(l_col)].append(level_map)
+                self.left_dict["".join(l_col)].append(level_map)
+                self.right_dict["".join(r_col)].append(level_map)
 
     def load_default(self) -> deque[list[GameObject]]:
         """Load starting level"""
@@ -54,9 +52,9 @@ class LevelGenerator:
         """Convert a column to a list of tiles"""
         tiles_col = []
         for y, block_num in enumerate(column):
-            if block_num != BlockType.EMPTY.value:
-                tiles_col.append(GameObject(self.images[block_num], x * self.tile_size, y * self.tile_size,
-                                            self.tile_size, self.tile_size))
+            tile = generate_tile(block_num, x, y, self.images[block_num])
+            if tile:
+                tiles_col.append(tile)
         return tiles_col
 
     def shift(self, dx: int):
@@ -71,7 +69,8 @@ class LevelGenerator:
             next_level = default_level
             print("Non existing")
         else:
-            next_level = random.choice(self.left_dict[self.left_margin])
+            print(len(self.right_dict[self.left_margin]))
+            next_level = random.choice(self.right_dict[self.left_margin])
 
         for x in range(len(next_level) - 1, -1, -1):
             new_col = self.convert_to_tiles(next_level[x])
@@ -81,15 +80,15 @@ class LevelGenerator:
 
     def create_right_level(self):
         """Add new level to the right of the screen"""
-        if len(self.right_dict[self.right_margin]) == 0:
+        if len(self.left_dict[self.right_margin]) == 0:
             next_level = default_level
             print("Non existing")
         else:
-            next_level = random.choice(self.right_dict[self.right_margin])
-
+            print(len(self.right_dict[self.right_margin]))
+            next_level = random.choice(self.left_dict[self.right_margin])
         for col in next_level:
             new_col = self.convert_to_tiles(col)
-            self.right_stack.append(new_col)
+            self.right_stack.appendleft(new_col)
         self.right_margin = "".join([str(i) for i in next_level[-1]])
 
     def move_left(self, dx):
@@ -98,14 +97,14 @@ class LevelGenerator:
         # Get position of last block on screen
         while not self.block_list[i]:
             i += 1
-        if self.block_list[i][0].rect.x - dx >= i * self.tile_size:
+        if self.block_list[i][0].rect.x - dx >= i * TILE_SIZE:
             # If left stack is empty, add level on the left
             if not self.left_stack:
                 self.create_left_level()
             # Update x coordinate for blocks in the column
             column = self.left_stack.pop()
             for block in column:
-                block.rect.x = self.block_list[i][0].rect.x - (i + 1) * self.tile_size
+                block.rect.x = self.block_list[i][0].rect.x - (i + 1) * TILE_SIZE
             # Add columns on the left of block_list
             self.block_list.appendleft(column)
             self.right_stack.append(self.block_list.pop())
@@ -116,14 +115,14 @@ class LevelGenerator:
         i = len(self.block_list) - 1
         while not self.block_list[i]:
             i -= 1
-        if self.block_list[i][0].rect.x - dx < self.screen_size - (len(self.block_list) - i) * self.tile_size:
+        if self.block_list[i][0].rect.x - dx < self.screen_size - (len(self.block_list) - i) * TILE_SIZE:
             # If right stack is empty, add level on the right stack
             if not self.right_stack:
                 self.create_right_level()
             # Update x coordinates for blocks in the column
             column = self.right_stack.pop()
             for block in column:
-                block.rect.x = self.block_list[i][0].rect.x + (len(self.block_list) - i) * self.tile_size
+                block.rect.x = self.block_list[i][0].rect.x + (len(self.block_list) - i) * TILE_SIZE
             # Add columns on the right of block_list
             self.block_list.append(column)
             self.left_stack.append(self.block_list.popleft())
