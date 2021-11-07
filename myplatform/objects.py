@@ -15,16 +15,21 @@ def generate_tile(block_num, x, y, image):
         tile = GameObject(image, x*TILE_SIZE, y*TILE_SIZE + TILE_SIZE//2, TILE_SIZE, TILE_SIZE//2)
     elif block_type == BlockType.LAVA:
         tile = GameObject(image, x * TILE_SIZE, y * TILE_SIZE + TILE_SIZE // 2, TILE_SIZE, TILE_SIZE // 2, True)
+    elif block_type == BlockType.ENEMY:
+        tile = Enemy(image, x*TILE_SIZE, y*TILE_SIZE + TILE_SIZE //4)
     return tile
 
 
 class GameObject(pygame.sprite.Sprite):
-    def __init__(self, image: pygame.Surface, x: int, y: int, width: int, height: int, deadly=False):
+    def __init__(self, image: pygame.Surface, x: int, y: int, width=None, height=None, deadly=False):
         super().__init__()
         """An object with specified image and position"""
         self.width = width
         self.height = height
-        self.image = pygame.transform.scale(image, (width, height))
+        if width and height:
+            self.image = pygame.transform.scale(image, (width, height))
+        else:
+            self.image = image
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -37,6 +42,9 @@ class GameObject(pygame.sprite.Sprite):
     def check_collision(self, rectangle: pygame.Surface) -> bool:
         """Check if is colliding with other object"""
         return self.rect.colliderect(rectangle)
+
+    def move_position(self, dx):
+        self.rect.x += dx
 
 
 # noinspection PyAttributeOutsideInit
@@ -163,3 +171,28 @@ class Coin(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = (x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE // 2)
 
+
+class Enemy(GameObject):
+    def __init__(self, image: pygame.Surface, x: int, y: int):
+        self.min_pos = x - TILE_SIZE
+        self.max_pos = x + TILE_SIZE
+        self.direction = Direction.RIGHT
+        self.velocity = 1
+        super().__init__(image, x, y, None, None, True)
+
+    def update(self):
+        if self.direction == Direction.RIGHT:
+            self.rect.x += self.velocity
+            if self.rect.x >= self.max_pos:
+                self.direction = Direction.LEFT
+                self.rect.x = self.max_pos
+        else:
+            self.rect.x -= self.velocity
+            if self.rect.x <= self.min_pos:
+                self.direction = Direction.RIGHT
+                self.rect.x = self.min_pos
+
+    def move_position(self, dx):
+        self.min_pos += dx
+        self.max_pos += dx
+        super().move_position(dx)

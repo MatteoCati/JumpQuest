@@ -85,8 +85,10 @@ class Game:
         self.screen.blit(self.sun_img, (80, 80))
         # Update player position
         self.player.update(self)
+        self.generator.enemies_group.update()
         # Draw all tiles
         self.generator.tiles_group.draw(self.screen)
+        self.generator.enemies_group.draw(self.screen)
         self.player.draw(self.screen)
         self.generator.coins_group.draw(self.screen)
         # Check collision with coins

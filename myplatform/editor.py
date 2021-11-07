@@ -1,3 +1,4 @@
+import logging
 import random
 
 import pygame
@@ -82,8 +83,7 @@ class Editor:
                 index = [idx]
             elif self.already_existing_left[s] == minimum:
                 index.append(idx)
-        if minimum > 0:
-            print("Minimum repetition on left side:", minimum, "/", len(self.ending_columns))
+        logging.info("Minimum repetition on left side:", minimum, "/", len(self.ending_columns))
         self.level_map[0] = self.ending_columns[random.choice(index)]
 
     def add_last_column(self):
@@ -135,7 +135,7 @@ class Editor:
         r_col = "".join([str(i) for i in self.level_map[-1]])
         self.already_existing_left[l_col] += 1
         self.already_existing_right[r_col] += 1
-        print("Saved!")
+        logging.info("Saved!")
 
     def check_buttons(self):
         """Check if any button is being pressed and update it"""

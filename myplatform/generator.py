@@ -5,7 +5,7 @@ import pygame
 import logging
 
 from myplatform.constants import default_level, NUM_BLOCKS, TILE_SIZE, BlockType
-from myplatform.objects import GameObject, generate_tile, Coin
+from myplatform.objects import GameObject, generate_tile, Coin, Enemy
 
 
 # noinspection PyAttributeOutsideInit
@@ -15,10 +15,11 @@ class LevelGenerator:
         self.right_stack = deque(maxlen=500)
         self.left_stack = deque(maxlen=500)
         self.screen_size = screen_size
-        self.coin_probability = 1/8
+        self.coin_probability = 1 / 8
 
         self.coins_group = pygame.sprite.Group()
         self.tiles_group = pygame.sprite.Group()
+        self.enemies_group = pygame.sprite.Group()
         self.load_images()
         self.load_levels()
 
@@ -45,6 +46,8 @@ class LevelGenerator:
             self.block_list.append((new_col, col))
             for tile in new_col:
                 self.tiles_group.add(tile)
+                if isinstance(tile, Enemy):
+                    self.enemies_group.add(tile)
             for i in range(0, len(col) - 3):
                 if col[i] == BlockType.EMPTY.value and col[i + 1] == BlockType.EMPTY.value and \
                         col[i + 2] != BlockType.EMPTY.value:
@@ -65,7 +68,7 @@ class LevelGenerator:
     def shift(self, dx: int):
         """Move all tiles of dx pixels"""
         for tile in self.tiles_group:
-            tile.rect.x += dx
+            tile.move_position(dx)
         for coin in self.coins_group:
             coin.rect.x += dx
 
@@ -83,26 +86,26 @@ class LevelGenerator:
 
     def move_left(self, dx):
         """Move screen to the left by dx pixels, loading a new column/level if necessary"""
-        i = 0
+        first = 0
         # Get position of last block on screen
-        while not self.block_list[i][0]:
-            i += 1
-        if self.block_list[i][0][0].rect.x - dx >= i * TILE_SIZE:
-            # If left stack is empty, add level on the left
+        while not self.block_list[first][0]:
+            first += 1
+        idx = 0
+        if isinstance(self.block_list[first][0][0], Enemy):
+            idx = 1
+        if self.block_list[first][0][idx].rect.x - dx >= first * TILE_SIZE:
+            # If left stack is empty, do not move screen
             if not self.left_stack:
                 return False
-
-            # Update x coordinate for blocks in the column
             column, map = self.left_stack.pop()
-            for block in column:
-                block.rect.x = self.block_list[i][0][0].rect.x - (i + 1) * TILE_SIZE
-                self.tiles_group.add(block)
+            # Update x coordinate for blocks in the column
+            self.add_column(column, self.block_list[first][0][idx].rect.x - (first + 1) * TILE_SIZE)
             # Add columns on the left of block_list
             self.block_list.appendleft((column, map))
+            # Remove last column on the right
             removed_col = self.block_list.pop()
             self.right_stack.appendleft(removed_col)
-            for block in removed_col[0]:
-                self.tiles_group.remove(block)
+            self.remove_column(removed_col)
         self.shift(-dx)
         return True
 
@@ -111,27 +114,45 @@ class LevelGenerator:
         last = len(self.block_list) - 1
         while not self.block_list[last][0]:
             last -= 1
-        if self.block_list[last][0][0].rect.x - dx < self.screen_size - (len(self.block_list) - last) * TILE_SIZE:
+        idx = 0
+        if isinstance(self.block_list[last][0][0], Enemy):
+            idx = 1
+        if self.block_list[last][0][idx].rect.x - dx < self.screen_size - (len(self.block_list) - last) * TILE_SIZE:
             # If right stack is empty, add level on the right stack
             if not self.right_stack:
                 self.create_right_level()
             # Update x coordinates for blocks in the column
             column, map = self.right_stack.popleft()
-            for block in column:
-                block.rect.x = self.block_list[last][0][0].rect.x + (len(self.block_list) - last) * TILE_SIZE
-                self.tiles_group.add(block)
+            self.add_column(column, self.block_list[last][0][idx].rect.x + (len(self.block_list) - last) * TILE_SIZE)
+            # Add coins to screen
             for i in range(0, len(map) - 3):
                 if map[i] == BlockType.EMPTY.value and map[i + 1] == BlockType.EMPTY.value and \
                         map[i + 2] != BlockType.EMPTY.value:
                     if random.random() < self.coin_probability:
                         coin = Coin(0, i)
-                        coin.rect.center = (self.block_list[last][0][0].rect.x + (len(self.block_list) - last) * TILE_SIZE + TILE_SIZE//2, coin.rect.center[1])
+                        coin.rect.center = (self.block_list[last][0][idx].rect.x + (
+                                    len(self.block_list) - last) * TILE_SIZE + TILE_SIZE // 2, coin.rect.center[1])
                         self.coins_group.add(coin)
 
             # Add columns on the right of block_list
             self.block_list.append((column, map))
+            # Remove first column on the left
             removed_col = self.block_list.popleft()
             self.left_stack.append(removed_col)
-            for block in removed_col[0]:
-                self.tiles_group.remove(block)
+            self.remove_column(removed_col)
         self.shift(-dx)
+
+    def remove_column(self, removed_column):
+        for block in removed_column:
+            self.tiles_group.remove(block)
+            if isinstance(block, Enemy):
+                self.enemies_group.remove(block)
+
+    def add_column(self, new_column, x_pos):
+        for block in new_column:
+            block.rect.x = x_pos
+            self.tiles_group.add(block)
+            if isinstance(block, Enemy):
+                block.min_pos = block.rect.x - TILE_SIZE
+                block.max_pos = block.rect.x + TILE_SIZE
+                self.enemies_group.add(block)
