@@ -79,6 +79,7 @@ class Player(GameObject):
                 # Jump
                 self.is_jumping = True
                 self.jump_time += 1
+                world.jump_sound.play()
                 self.velocity[1] = -15
             if not keys[pygame.K_SPACE]:
                 self.is_jumping = False
@@ -90,25 +91,24 @@ class Player(GameObject):
             self.rect.y = min(world.size - TILE_SIZE, self.rect.y)
         dx = self.velocity[0]
         dy = self.velocity[1]
-        for col, _ in world.block_list:
-            for tile in col:
-                # check for collision in x direction
-                if tile.rect.colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
-                    dx = 0
-                # check for collision in y direction
-                if tile.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
-                    # check if below the ground i.e. jumping
-                    if self.velocity[1] < 0:
-                        dy = tile.rect.bottom - self.rect.top
-                        self.velocity[1] = 0
+        for tile in world.generator.tiles_group:
+            # check for collision in x direction
+            if tile.rect.colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                dx = 0
+            # check for collision in y direction
+            if tile.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                # check if below the ground i.e. jumping
+                if self.velocity[1] < 0:
+                    dy = tile.rect.bottom - self.rect.top
+                    self.velocity[1] = 0
                     # check if above the ground i.e. falling
-                    elif self.velocity[1] >= 0:
-                        dy = tile.rect.top - self.rect.bottom
-                        self.jump_time = 0
-                        self.velocity[1] = 0
-                    # Check if collision is deadly
-                    if tile.deadly:
-                        world.game_over = True
+                elif self.velocity[1] >= 0:
+                    dy = tile.rect.top - self.rect.bottom
+                    self.jump_time = 0
+                    self.velocity[1] = 0
+                # Check if collision is deadly
+                if tile.deadly:
+                    world.lose_game()
 
         # If near right border, move background instead
         if self.rect.x + dx > 0.70*world.size:
@@ -159,7 +159,7 @@ class Coin(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.image = pygame.image.load('images/coin.png')
-        self.image = pygame.transform.scale(self.image, (TILE_SIZE //2, TILE_SIZE//2))
+        self.image = pygame.transform.scale(self.image, (TILE_SIZE // 2, TILE_SIZE // 2))
         self.rect = self.image.get_rect()
-        self.rect.center = (x * TILE_SIZE + TILE_SIZE//2, y * TILE_SIZE + TILE_SIZE//2)
+        self.rect.center = (x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE // 2)
 

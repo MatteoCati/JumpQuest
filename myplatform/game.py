@@ -1,3 +1,5 @@
+import logging
+
 import pygame
 
 from myplatform.button import Button
@@ -15,25 +17,36 @@ class Game:
         self.size = size
         self.fps = fps
 
+        pygame.mixer.pre_init()
+        pygame.mixer.init()
         pygame.init()
         self.screen = pygame.display.set_mode((size, size))
         pygame.display.set_caption(title)
+
         self.score_font = pygame.font.SysFont("Bauhaus 92", 30, True)
         self.font = pygame.font.SysFont("Bauhaus 92", 70, True)
 
         self.load_images()
         self.load_buttons()
+        self.load_sounds()
         self.play()
         pygame.quit()
 
     def start_game(self):
         self.generator = LevelGenerator(self.size)
-        self.block_list = self.generator.load_default()
+        self.generator.load_default()
         self.player = Player(self.size // 2, 0, 40, 80)
-
         self.clock = pygame.time.Clock()
         self.game_over = False
         self.score = 0
+
+    def load_sounds(self):
+        self.coin_sound = pygame.mixer.Sound("./sounds/sound_coin.wav")
+        self.coin_sound.set_volume(0.5)
+        self.game_over_sound = pygame.mixer.Sound("./sounds/sound_game_over.wav")
+        self.game_over_sound.set_volume(0.5)
+        self.jump_sound = pygame.mixer.Sound("./sounds/sound_jump.wav")
+        self.jump_sound.set_volume(0.5)
 
     def load_buttons(self):
         restart_img = pygame.image.load("./images/restart_btn.png").convert_alpha()
@@ -42,20 +55,21 @@ class Game:
     def play(self):
         """Play the game"""
         run = True
-
         self.start_game()
         while run:
             # Check if window has been closed
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     run = False
-                    self.game_over = True
             # Update screen
             self.update()
             # Check if player has lost
             if self.player.rect.y > self.size:
-                self.game_over = True
+                self.lose_game()
+
+    def lose_game(self):
+        self.game_over = True
+        self.game_over_sound.play()
 
     def load_images(self):
         """Load all necessary images"""
@@ -72,22 +86,23 @@ class Game:
         # Update player position
         self.player.update(self)
         # Draw all tiles
-        for col, _ in self.block_list:
-            for block in col:
-                block.draw(self.screen)
+        self.generator.tiles_group.draw(self.screen)
         self.player.draw(self.screen)
-        self.generator.coins_list.draw(self.screen)
-        if pygame.sprite.spritecollide(self.player, self.generator.coins_list, True):
+        self.generator.coins_group.draw(self.screen)
+        # Check collision with coins
+        if pygame.sprite.spritecollide(self.player, self.generator.coins_group, True):
             self.score += 1
+            self.coin_sound.play()
+        # Draw score text
         score_txt = self.score_font.render("Score: " + str(self.score), True, self.BLACK)
         self.screen.blit(score_txt, (25, 25))
-        # Show updates on screen
+        # Show game over screen
         if self.game_over:
             if self.restart_btn.draw(self.screen):
-                print("restart")
+                logging.debug("restart")
                 self.start_game()
             gameover_txt = self.font.render("Game Over!", True, self.BLUE)
             txt_pos = (self.size//2 - gameover_txt.get_width()//2, 300)
             self.screen.blit(gameover_txt, txt_pos)
-
+        # Update screen
         pygame.display.update()
