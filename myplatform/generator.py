@@ -14,7 +14,7 @@ class LevelGenerator:
         self.right_stack = deque(maxlen=500)
         self.left_stack = deque(maxlen=500)
         self.screen_size = screen_size
-        self.coin_probability = 1/4
+        self.coin_probability = 1/8
 
         self.coins_list = pygame.sprite.Group()
         self.load_images()

@@ -1,6 +1,3 @@
-import os.path
-import pickle as pkl
-
 from myplatform.game import Game
 from myplatform.editor import Editor
 

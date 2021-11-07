@@ -18,8 +18,9 @@ def generate_tile(block_num, x, y, image):
     return tile
 
 
-class GameObject:
+class GameObject(pygame.sprite.Sprite):
     def __init__(self, image: pygame.Surface, x: int, y: int, width: int, height: int, deadly=False):
+        super().__init__()
         """An object with specified image and position"""
         self.width = width
         self.height = height
