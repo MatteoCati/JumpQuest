@@ -13,7 +13,7 @@ class Game:
     BLACK = (0, 0, 0)
     BLUE = (0, 0, 255)
 
-    def __init__(self, title="Platform Game", size=800, fps=60):
+    def __init__(self, title="Jump Quest", size=800, fps=60):
         self.size = size
         self.fps = fps
 
@@ -76,6 +76,8 @@ class Game:
         self.sun_img = pygame.image.load("./images/sun.png")
         self.background_img = pygame.image.load("./images/background.png")
         self.background_img = pygame.transform.scale(self.background_img, (self.size, self.size))
+        icon = pygame.image.load("./images/block1.png")
+        pygame.display.set_icon(icon)
 
     def update(self):
         """Update the screen"""
